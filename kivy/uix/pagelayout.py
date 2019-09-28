@@ -90,6 +90,9 @@ class PageLayout(Layout):
         fbind('children', trigger)
         fbind('size', trigger)
         fbind('pos', trigger)
+        self.register_event_type('on_select')
+        
+        
 
     def do_layout(self, *largs):
         l_children = len(self.children) - 1
@@ -220,6 +223,14 @@ class PageLayout(Layout):
         if len(self.children) > 1:
             return self.children[-self.page + 1].on_touch_up(touch)
 
+    # 选择了新的页面
+    def on_select(self,index):
+        pass
+    
+    # 发送信号
+    def on_page(self,instance,index):
+        print('dispatch on_select',index)
+        self.dispatch('on_select',index)
 
 if __name__ == '__main__':
     from kivy.base import runTouchApp
