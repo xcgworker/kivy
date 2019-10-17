@@ -504,7 +504,7 @@ class TextInput(FocusBehavior, Widget):
         # in TextInput's viewport
         self._visible_lines_range = 0, 0
 
-        # true means input method is working,need to ignore blackspace
+        # true means input method is working,need to ignore backspace
         self._is_textedit = False
 
         self.interesting_keys = {
@@ -1637,8 +1637,7 @@ class TextInput(FocusBehavior, Widget):
         if bubble is None:
             self._bubble = bubble = TextInputCutCopyPaste(textinput=self)
             self.fbind('parent', self._show_cut_copy_paste, pos, win, True)
-            win.bind(
-                size=lambda *args: self._hide_cut_copy_paste(win))
+            self.bind(focus=lambda *args: self._hide_cut_copy_paste(win))
             self.bind(cursor_pos=lambda *args: self._hide_cut_copy_paste(win))
         else:
             win.remove_widget(bubble)
@@ -2403,7 +2402,7 @@ class TextInput(FocusBehavior, Widget):
             if cursor != self.cursor:
                 self.do_backspace(mode='del')
         elif internal_action == 'backspace':
-            if not self._is_textedit:  # 检查是否是输入法
+            if not self._is_textedit:  # check input method is working
                 self.do_backspace()
 
         # handle action keys and text insertion
@@ -2785,7 +2784,7 @@ class TextInput(FocusBehavior, Widget):
                                bind=('cursor', 'padding', 'pos', 'size',
                                      'focus', 'scroll_x', 'scroll_y',
                                      'line_height', 'line_spacing'),
-                               cache=True)
+                               cache=False)
     '''Current position of the cursor, in (x, y).
 
     :attr:`cursor_pos` is an :class:`~kivy.properties.AliasProperty`,
