@@ -21,8 +21,9 @@ from kivy.base import EventLoop, stopTouchApp
 from kivy.modules import Modules
 from kivy.event import EventDispatcher
 from kivy.properties import ListProperty, ObjectProperty, AliasProperty, \
-    NumericProperty, OptionProperty, StringProperty, BooleanProperty
-from kivy.utils import platform, reify, deprecated
+    NumericProperty, OptionProperty, StringProperty, BooleanProperty, \
+    ColorProperty
+from kivy.utils import platform, reify, deprecated, pi_version
 from kivy.context import get_current_context
 from kivy.uix.behaviors import FocusBehavior
 from kivy.setupconfig import USE_SDL2
@@ -312,7 +313,7 @@ class WindowBase(EventDispatcher):
                 The *unicode* parameter has be deprecated in favor of
                 codepoint, and will be removed completely in future versions.
 
-        `on_dropfile`: str
+        `on_dropfile`: filename (bytes or string):
             Fired when a file is dropped on the application.
 
             .. note::
@@ -1207,14 +1208,18 @@ class WindowBase(EventDispatcher):
     :attr:`shape_mode` is an :class:`~kivy.properties.AliasProperty`.
     '''
 
-    shape_color_key = ListProperty([1, 1, 1, 1])
+    shape_color_key = ColorProperty([1, 1, 1, 1])
     '''Color key of the shaped window - sets which color will be hidden from
     the window :attr:`shape_image` (only works for sdl2 window provider).
 
     .. versionadded:: 1.10.1
 
-    :attr:`shape_color_key` is a :class:`~kivy.properties.ListProperty`
+    :attr:`shape_color_key` is a :class:`~kivy.properties.ColorProperty`
     instance and defaults to [1, 1, 1, 1].
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
     def on_shape_color_key(self, instane, value):
         self._set_shape(
@@ -2069,7 +2074,7 @@ class WindowBase(EventDispatcher):
 
 #: Instance of a :class:`WindowBase` implementation
 window_impl = []
-if platform == 'linux':
+if platform == 'linux' and (pi_version or 4) < 4:
     window_impl += [('egl_rpi', 'window_egl_rpi', 'WindowEglRpi')]
 if USE_SDL2:
     window_impl += [('sdl2', 'window_sdl2', 'WindowSDL')]

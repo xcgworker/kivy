@@ -16,7 +16,7 @@ are supported.
 The :class:`TextInput` uses two different coordinate systems:
 
 * (x, y) - coordinates in pixels, mostly used for rendering on screen.
-* (row, col) - cursor index in characters / lines, used for selection
+* (col, row) - cursor index in characters / lines, used for selection
   and cursor movement.
 
 
@@ -170,7 +170,7 @@ from kivy.uix.image import Image
 
 from kivy.properties import StringProperty, NumericProperty, \
     BooleanProperty, AliasProperty, OptionProperty, \
-    ListProperty, ObjectProperty, VariableListProperty
+    ListProperty, ObjectProperty, VariableListProperty, ColorProperty
 
 Cache_register = Cache.register
 Cache_append = Cache.append
@@ -194,6 +194,7 @@ _textinput_list = []
 
 # cache the result
 _is_osx = sys.platform == 'darwin'
+_is_linux = sys.platform=='linux'
 
 # When we are generating documentation, Config doesn't exist
 _is_desktop = False
@@ -615,17 +616,19 @@ class TextInput(FocusBehavior, Widget):
         '''Get the cursor x offset on the current line.
         '''
         offset = 0
-        row = self.cursor_row
-        col = self.cursor_col
+        row = int(self.cursor_row)
+        col = int(self.cursor_col)
         _lines = self._lines
         if col and row < len(_lines):
             offset = self._get_text_width(
-                _lines[row][:col], self.tab_width,
-                self._label_cached)
+                _lines[row][:col],
+                self.tab_width,
+                self._label_cached
+            )
         return offset
 
     def get_cursor_from_index(self, index):
-        '''Return the (row, col) of the cursor from text index.
+        '''Return the (col, row) of the cursor from text index.
         '''
         index = boundary(index, 0, len(self.text))
         if index <= 0:
@@ -671,12 +674,12 @@ class TextInput(FocusBehavior, Widget):
         '''
         self.select_text(0, len(self.text))
 
-    re_indent = re.compile('^(\s*|)')
+    re_indent = re.compile(r'^(\s*|)')
 
     def _auto_indent(self, substring):
         index = self.cursor_index()
-        _text = self._get_text(encode=False)
         if index > 0:
+            _text = self.text
             line_start = _text.rfind('\n', 0, index)
             if line_start > -1:
                 line = _text[line_start + 1:index]
@@ -1058,8 +1061,8 @@ class TextInput(FocusBehavior, Widget):
             self._lines_flags = list(reversed(
                 flags[:m1srow] + flags[m2srow:m2erow] + flags[m1srow:m1erow] +
                 flags[m2erow:]))
-            self._lines = (lines[:m1srow] + lines[m2srow:m2erow] +
-                           lines[m1srow:m1erow] + lines[m2erow:])
+            self._lines[:] = (lines[:m1srow] + lines[m2srow:m2erow] +
+                              lines[m1srow:m1erow] + lines[m2erow:])
             self._lines_labels = (labels[:m1srow] + labels[m2srow:m2erow] +
                                   labels[m1srow:m1erow] + labels[m2erow:])
             self._lines_rects = (rects[:m1srow] + rects[m2srow:m2erow] +
@@ -1203,7 +1206,7 @@ class TextInput(FocusBehavior, Widget):
             self.cursor = (col, row)
 
     def get_cursor_from_xy(self, x, y):
-        '''Return the (row, col) of the cursor from an (x, y) position.
+        '''Return the (col, row) of the cursor from an (x, y) position.
         '''
         padding_left = self.padding[0]
         padding_top = self.padding[1]
@@ -1261,7 +1264,7 @@ class TextInput(FocusBehavior, Widget):
         cc, cr = self.cursor
         if not self._selection:
             return
-        v = self._get_text(encode=False)
+        text = self.text
         a, b = self._selection_from, self._selection_to
         if a > b:
             a, b = b, a
@@ -1280,7 +1283,7 @@ class TextInput(FocusBehavior, Widget):
         self.scroll_x = scrl_x
         self.scroll_y = scrl_y
         # handle undo and redo for delete selection
-        self._set_unredo_delsel(a, b, v[a:b], from_undo)
+        self._set_unredo_delsel(a, b, text[a:b], from_undo)
         self.cancel_selection()
 
     def _set_unredo_delsel(self, a, b, substring, from_undo):
@@ -1298,11 +1301,11 @@ class TextInput(FocusBehavior, Widget):
         '''Update selection text and order of from/to if finished is True.
         Can be called multiple times until finished is True.
         '''
-        a, b = self._selection_from, self._selection_to
+        a, b = int(self._selection_from), int(self._selection_to)
         if a > b:
             a, b = b, a
         self._selection_finished = finished
-        _selection_text = self._get_text(encode=False)[a:b]
+        _selection_text = self.text[a:b]
         self.selection_text = ("" if not self.allow_copy else
                                ((self.password_mask * (b - a)) if
                                 self.password else _selection_text))
@@ -1335,8 +1338,8 @@ class TextInput(FocusBehavior, Widget):
         different behavior. Alternatively, you can bind to this
         event to provide additional functionality.
         '''
-        ci = self.cursor_index()
-        cc = self.cursor_col
+        ci = int(self.cursor_index())
+        cc = int(self.cursor_col)
         line = self._lines[self.cursor_row]
         len_line = len(line)
         start = max(0, len(line[:cc]) - line[:cc].rfind(u' ') - 1)
@@ -1875,7 +1878,7 @@ class TextInput(FocusBehavior, Widget):
         self._refresh_text_from_property(*largs)
 
     def _refresh_text_from_property(self, *largs):
-        self._refresh_text(self._get_text(encode=False), *largs)
+        self._refresh_text(self.text, *largs)
 
     def _refresh_text(self, text, *largs):
         # Refresh all the lines from a new text.
@@ -1900,7 +1903,7 @@ class TextInput(FocusBehavior, Widget):
         if mode == 'all':
             self._lines_labels = _lines_labels
             self._lines_rects = _line_rects
-            self._lines = _lines
+            self._lines[:] = _lines
         elif mode == 'del':
             if finish > start:
                 self._insert_lines(start,
@@ -1933,39 +1936,39 @@ class TextInput(FocusBehavior, Widget):
 
     def _insert_lines(self, start, finish, len_lines, _lines_flags,
                       _lines, _lines_labels, _line_rects):
-            self_lines_flags = self._lines_flags
-            _lins_flags = []
-            _lins_flags.extend(self_lines_flags[:start])
-            if len_lines:
-                # if not inserting at first line then
-                if start:
-                    # make sure line flags restored for first line
-                    # _split_smart assumes first line to be not a new line
-                    _lines_flags[0] = self_lines_flags[start]
-                _lins_flags.extend(_lines_flags)
-            _lins_flags.extend(self_lines_flags[finish:])
-            self._lines_flags = _lins_flags
+        self_lines_flags = self._lines_flags
+        _lins_flags = []
+        _lins_flags.extend(self_lines_flags[:start])
+        if len_lines:
+            # if not inserting at first line then
+            if start:
+                # make sure line flags restored for first line
+                # _split_smart assumes first line to be not a new line
+                _lines_flags[0] = self_lines_flags[start]
+            _lins_flags.extend(_lines_flags)
+        _lins_flags.extend(self_lines_flags[finish:])
+        self._lines_flags = _lins_flags
 
-            _lins_lbls = []
-            _lins_lbls.extend(self._lines_labels[:start])
-            if len_lines:
-                _lins_lbls.extend(_lines_labels)
-            _lins_lbls.extend(self._lines_labels[finish:])
-            self._lines_labels = _lins_lbls
+        _lins_lbls = []
+        _lins_lbls.extend(self._lines_labels[:start])
+        if len_lines:
+            _lins_lbls.extend(_lines_labels)
+        _lins_lbls.extend(self._lines_labels[finish:])
+        self._lines_labels = _lins_lbls
 
-            _lins_rcts = []
-            _lins_rcts.extend(self._lines_rects[:start])
-            if len_lines:
-                _lins_rcts.extend(_line_rects)
-            _lins_rcts.extend(self._lines_rects[finish:])
-            self._lines_rects = _lins_rcts
+        _lins_rcts = []
+        _lins_rcts.extend(self._lines_rects[:start])
+        if len_lines:
+            _lins_rcts.extend(_line_rects)
+        _lins_rcts.extend(self._lines_rects[finish:])
+        self._lines_rects = _lins_rcts
 
-            _lins = []
-            _lins.extend(self._lines[:start])
-            if len_lines:
-                _lins.extend(_lines)
-            _lins.extend(self._lines[finish:])
-            self._lines = _lins
+        _lins = []
+        _lins.extend(self._lines[:start])
+        if len_lines:
+            _lins.extend(_lines)
+        _lins.extend(self._lines[finish:])
+        self._lines[:] = _lins
 
     def _trigger_update_graphics(self, *largs):
         self._update_graphics_ev.cancel()
@@ -2405,7 +2408,7 @@ class TextInput(FocusBehavior, Widget):
         elif internal_action == 'backspace':
             if not self._is_textedit:  # check input method is working
                 self.do_backspace()
-            elif self._len_textedit==1: # for linux
+            elif (_is_linux and self._len_textedit==1) : # for linux
                 self._len_textedit-=1
                 self._is_textedit=False
                 self.do_backspace()
@@ -2588,14 +2591,14 @@ class TextInput(FocusBehavior, Widget):
             self._key_up(key)
 
     def keyboard_on_textinput(self, window, text):
-        print('textinput',text,len(text))
+        #print('textinput',text,len(text))
         if self._selection:
             self.delete_selection()
         self.insert_text(text, False)
         self._is_textedit = False  # ready to insert ,finish text edit state.
 
     def keyboard_on_textedit(self, window, text):
-        print('textedit',text,len(text))
+        #print('textedit',text,len(text))
         self._len_textedit=len(text)
         if self._len_textedit > 0:
             self._is_textedit = True
@@ -2616,7 +2619,7 @@ class TextInput(FocusBehavior, Widget):
             _hint_text_labels.append(lbl)
             _hint_text_rects.append(Rectangle(size=lbl.size))
 
-        self._hint_text_lines = _lines
+        self._hint_text_lines[:] = _lines
         self._hint_text_labels = _hint_text_labels
         self._hint_text_rects = _hint_text_rects
 
@@ -2760,8 +2763,8 @@ class TextInput(FocusBehavior, Widget):
         return True
 
     cursor = AliasProperty(_get_cursor, _set_cursor)
-    '''Tuple of (row, col) values indicating the current cursor position.
-    You can set a new (row, col) if you want to move the cursor. The scrolling
+    '''Tuple of (col, row) values indicating the current cursor position.
+    You can set a new (col, row) if you want to move the cursor. The scrolling
     area will be automatically updated to ensure that the cursor is
     visible inside the viewport.
 
@@ -2799,13 +2802,17 @@ class TextInput(FocusBehavior, Widget):
     read-only.
     '''
 
-    cursor_color = ListProperty([1, 0, 0, 1])
+    cursor_color = ColorProperty([1, 0, 0, 1])
     '''Current color of the cursor, in (r, g, b, a) format.
 
     .. versionadded:: 1.9.0
 
-    :attr:`cursor_color` is a :class:`~kivy.properties.ListProperty` and
+    :attr:`cursor_color` is a :class:`~kivy.properties.ColorProperty` and
     defaults to [1, 0, 0, 1].
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
 
     cursor_width = NumericProperty('1sp')
@@ -2915,7 +2922,7 @@ class TextInput(FocusBehavior, Widget):
     defaults to 0.
     '''
 
-    selection_color = ListProperty([0.1843, 0.6549, 0.8313, .5])
+    selection_color = ColorProperty([0.1843, 0.6549, 0.8313, .5])
     '''Current color of the selection, in (r, g, b, a) format.
 
     .. warning::
@@ -2923,8 +2930,12 @@ class TextInput(FocusBehavior, Widget):
         The color should always have an "alpha" component less than 1
         since the selection is drawn after the text.
 
-    :attr:`selection_color` is a :class:`~kivy.properties.ListProperty` and
+    :attr:`selection_color` is a :class:`~kivy.properties.ColorProperty` and
     defaults to [0.1843, 0.6549, 0.8313, .5].
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
 
     border = ListProperty([4, 4, 4, 4])
@@ -2973,32 +2984,44 @@ class TextInput(FocusBehavior, Widget):
     defaults to 'atlas://data/images/defaulttheme/textinput_active'.
     '''
 
-    background_color = ListProperty([1, 1, 1, 1])
+    background_color = ColorProperty([1, 1, 1, 1])
     '''Current color of the background, in (r, g, b, a) format.
 
     .. versionadded:: 1.2.0
 
-    :attr:`background_color` is a :class:`~kivy.properties.ListProperty`
+    :attr:`background_color` is a :class:`~kivy.properties.ColorProperty`
     and defaults to [1, 1, 1, 1] (white).
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
 
-    foreground_color = ListProperty([0, 0, 0, 1])
+    foreground_color = ColorProperty([0, 0, 0, 1])
     '''Current color of the foreground, in (r, g, b, a) format.
 
     .. versionadded:: 1.2.0
 
-    :attr:`foreground_color` is a :class:`~kivy.properties.ListProperty`
+    :attr:`foreground_color` is a :class:`~kivy.properties.ColorProperty`
     and defaults to [0, 0, 0, 1] (black).
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
 
-    disabled_foreground_color = ListProperty([0, 0, 0, .5])
+    disabled_foreground_color = ColorProperty([0, 0, 0, .5])
     '''Current color of the foreground when disabled, in (r, g, b, a) format.
 
     .. versionadded:: 1.8.0
 
     :attr:`disabled_foreground_color` is a
-    :class:`~kivy.properties.ListProperty` and
+    :class:`~kivy.properties.ColorProperty` and
     defaults to [0, 0, 0, 5] (50% transparent black).
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
 
     use_bubble = BooleanProperty(not _is_desktop)
@@ -3098,35 +3121,31 @@ class TextInput(FocusBehavior, Widget):
             if CutBuffer and not self.password:
                 self._trigger_update_cutbuffer()
 
-    def _get_text(self, encode=False):
-        lf = self._lines_flags
-        l = self._lines
-        len_l = len(l)
-
-        if len(lf) < len_l:
-            lf.append(1)
-
-        text = u''.join([(u'\n' if (lf[i] & FL_IS_LINEBREAK) else u'') + l[i]
-                        for i in range(len_l)])
-
-        if encode and not isinstance(text, bytes):
-            text = text.encode('utf8')
+    def _get_text(self):
+        flags = self._lines_flags
+        lines = self._lines
+        len_lines = len(lines)
+        less_flags = len(flags) < len_lines
+        if less_flags:
+            flags.append(1)
+        text = ''.join(
+            ('\n' if (flags[i] & FL_IS_LINEBREAK) else '') + lines[i]
+            for i in range(len_lines)
+        )
+        if less_flags:
+            flags.pop()
         return text
 
     def _set_text(self, text):
         if isinstance(text, bytes):
             text = text.decode('utf8')
-
         if self.replace_crlf:
             text = text.replace(u'\r\n', u'\n')
+        if self.text != text:
+            self._refresh_text(text)
+            self.cursor = self.get_cursor_from_index(len(text))
 
-        if self._get_text(encode=False) == text:
-            return
-
-        self._refresh_text(text)
-        self.cursor = self.get_cursor_from_index(len(text))
-
-    text = AliasProperty(_get_text, _set_text, bind=('_lines',))
+    text = AliasProperty(_get_text, _set_text, bind=('_lines',), cache=True)
     '''Text of the widget.
 
     Creation of a simple hello world::
@@ -3167,7 +3186,7 @@ class TextInput(FocusBehavior, Widget):
     '''Font size of the text in pixels.
 
     :attr:`font_size` is a :class:`~kivy.properties.NumericProperty` and
-    defaults to 15\ :attr:`~kivy.metrics.sp`.
+    defaults to 15 :attr:`~kivy.metrics.sp`.
     '''
 
     font_context = StringProperty(None, allownone=True)
@@ -3280,13 +3299,17 @@ class TextInput(FocusBehavior, Widget):
     to ''.
     '''
 
-    hint_text_color = ListProperty([0.5, 0.5, 0.5, 1.0])
+    hint_text_color = ColorProperty([0.5, 0.5, 0.5, 1.0])
     '''Current color of the hint_text text, in (r, g, b, a) format.
 
     .. versionadded:: 1.6.0
 
-    :attr:`hint_text_color` is a :class:`~kivy.properties.ListProperty` and
+    :attr:`hint_text_color` is a :class:`~kivy.properties.ColorProperty` and
     defaults to [0.5, 0.5, 0.5, 1.0] (grey).
+
+    .. versionchanged:: 2.0.0
+        Changed from :class:`~kivy.properties.ListProperty` to
+        :class:`~kivy.properties.ColorProperty`.
     '''
 
     auto_indent = BooleanProperty(False)
