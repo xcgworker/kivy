@@ -2588,14 +2588,14 @@ class TextInput(FocusBehavior, Widget):
             self._key_up(key)
 
     def keyboard_on_textinput(self, window, text):
-        print('textinput',text,len(text))
+        #print('textinput',text,len(text))
         if self._selection:
             self.delete_selection()
         self.insert_text(text, False)
         self._is_textedit = False  # ready to insert ,finish text edit state.
 
     def keyboard_on_textedit(self, window, text):
-        print('textedit',text,len(text))
+        #print('textedit',text,len(text))
         self._len_textedit=len(text)
         if self._len_textedit > 0:
             self._is_textedit = True
