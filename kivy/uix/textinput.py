@@ -506,6 +506,7 @@ class TextInput(FocusBehavior, Widget):
 
         # true means input method is working,need to ignore backspace
         self._is_textedit = False
+        self._len_textedit=0
 
         self.interesting_keys = {
             8: 'backspace',
@@ -1637,8 +1638,7 @@ class TextInput(FocusBehavior, Widget):
         if bubble is None:
             self._bubble = bubble = TextInputCutCopyPaste(textinput=self)
             self.fbind('parent', self._show_cut_copy_paste, pos, win, True)
-            win.bind(
-                size=lambda *args: self._hide_cut_copy_paste(win))
+            self.bind(focus=lambda *args: self._hide_cut_copy_paste(win))
             self.bind(cursor_pos=lambda *args: self._hide_cut_copy_paste(win))
         else:
             win.remove_widget(bubble)
@@ -2405,6 +2405,10 @@ class TextInput(FocusBehavior, Widget):
         elif internal_action == 'backspace':
             if not self._is_textedit:  # check input method is working
                 self.do_backspace()
+            elif self._len_textedit==1: # for linux
+                self._len_textedit-=1
+                self._is_textedit=False
+                self.do_backspace()
 
         # handle action keys and text insertion
         if internal_action is None:
@@ -2584,13 +2588,16 @@ class TextInput(FocusBehavior, Widget):
             self._key_up(key)
 
     def keyboard_on_textinput(self, window, text):
+        #print('textinput',text,len(text))
         if self._selection:
             self.delete_selection()
         self.insert_text(text, False)
         self._is_textedit = False  # ready to insert ,finish text edit state.
 
     def keyboard_on_textedit(self, window, text):
-        if len(text) > 0:
+        #print('textedit',text,len(text))
+        self._len_textedit=len(text)
+        if self._len_textedit > 0:
             self._is_textedit = True
         else:
             self._is_textedit = False
@@ -2785,7 +2792,7 @@ class TextInput(FocusBehavior, Widget):
                                bind=('cursor', 'padding', 'pos', 'size',
                                      'focus', 'scroll_x', 'scroll_y',
                                      'line_height', 'line_spacing'),
-                               cache=True)
+                               cache=False)
     '''Current position of the cursor, in (x, y).
 
     :attr:`cursor_pos` is an :class:`~kivy.properties.AliasProperty`,
