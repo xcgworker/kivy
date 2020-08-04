@@ -299,6 +299,7 @@ class BuilderBase(object):
         filename = resource_find(filename) or filename
         if __debug__:
             trace('Lang: load file %s' % filename)
+        #解决中文问题
         with open(filename, 'r',encoding='UTF-8') as fd:
             kwargs['filename'] = filename
             data = fd.read()
