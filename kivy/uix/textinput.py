@@ -194,6 +194,7 @@ _textinput_list = []
 
 # cache the result
 _is_osx = sys.platform == 'darwin'
+_is_linux = sys.platform=='linux'
 
 # When we are generating documentation, Config doesn't exist
 _is_desktop = False
@@ -2407,7 +2408,7 @@ class TextInput(FocusBehavior, Widget):
         elif internal_action == 'backspace':
             if not self._is_textedit:  # check input method is working
                 self.do_backspace()
-            elif self._len_textedit==1: # for linux
+            elif (_is_linux and self._len_textedit==1) : # for linux
                 self._len_textedit-=1
                 self._is_textedit=False
                 self.do_backspace()
