@@ -404,6 +404,13 @@ class WindowSDL(WindowBase):
         Logger.debug('Window: Screenshot saved at <%s>' % filename)
         return filename
 
+    def screen_area_shot(self,rect,filename):
+        from kivy.graphics.opengl import glReadPixels, GL_RGB, GL_UNSIGNED_BYTE
+        width, height = rect[2],rect[3]
+        data = glReadPixels(rect[0], rect[1], width, height, GL_RGB, GL_UNSIGNED_BYTE)
+        self._win.save_bytes_in_png(filename, data, width, height)
+        Logger.info('Window: Screenshot %s saved at <%s>' % (str(rect),filename))
+        
     def flip(self):
         self._win.flip()
         super(WindowSDL, self).flip()
