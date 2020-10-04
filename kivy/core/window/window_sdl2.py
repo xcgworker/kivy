@@ -200,7 +200,7 @@ class WindowSDL(WindowBase):
                   minimum_height=self._set_minimum_size)
 
         self.bind(allow_screensaver=self._set_allow_screensaver)
-        self.last_keydown=None #for linux
+        #self.last_keydown=None #for linux
 
     def get_window_info(self):
         return self._win.get_window_info()
@@ -512,11 +512,11 @@ class WindowSDL(WindowBase):
 
             action, args = event[0], event[1:]
                         #for linx
-            if action=='keydown':
-                if args==self.last_keydown:
-                    self.last_keydown=None 
-                    continue
-                self.last_keydown=args
+#             if action=='keydown':
+#                 if args==self.last_keydown:
+#                     self.last_keydown=None 
+#                     continue
+#                 self.last_keydown=args
                 
             if action == 'quit':
                 if self.dispatch('on_request_close'):
