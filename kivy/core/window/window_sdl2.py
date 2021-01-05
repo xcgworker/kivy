@@ -13,13 +13,13 @@ TODO:
 
 '''
 
-__all__ = ('WindowSDL2', )
+__all__ = ('WindowSDL', )
 
 from os.path import join
 import sys
 from kivy import kivy_data_dir
 from kivy.logger import Logger
-from kivy.base import EventLoop, ExceptionManager, stopTouchApp
+from kivy.base import EventLoop
 from kivy.clock import Clock
 from kivy.config import Config
 from kivy.core.window import WindowBase
@@ -70,7 +70,7 @@ SDLK_SUPER = 1073742051
 SDLK_CAPS = 1073741881
 SDLK_INSERT = 1073741897
 SDLK_KEYPADNUM = 1073741907
-SDLK_KP_DEVIDE = 1073741908
+SDLK_KP_DIVIDE = 1073741908
 SDLK_KP_MULTIPLY = 1073741909
 SDLK_KP_MINUS = 1073741910
 SDLK_KP_PLUS = 1073741911
@@ -181,7 +181,7 @@ class WindowSDL(WindowBase):
                         SDLK_F6: 287, SDLK_F7: 288, SDLK_F8: 289, SDLK_F9: 290,
                         SDLK_F10: 291, SDLK_F11: 292, SDLK_F12: 293,
                         SDLK_F13: 294, SDLK_F14: 295, SDLK_F15: 296,
-                        SDLK_KEYPADNUM: 300, SDLK_KP_DEVIDE: 267,
+                        SDLK_KEYPADNUM: 300, SDLK_KP_DIVIDE: 267,
                         SDLK_KP_MULTIPLY: 268, SDLK_KP_MINUS: 269,
                         SDLK_KP_PLUS: 270, SDLK_KP_ENTER: 271,
                         SDLK_KP_DOT: 266, SDLK_KP_0: 256, SDLK_KP_1: 257,
@@ -200,6 +200,7 @@ class WindowSDL(WindowBase):
                   minimum_height=self._set_minimum_size)
 
         self.bind(allow_screensaver=self._set_allow_screensaver)
+        #self.last_keydown=None #for linux
 
     def get_window_info(self):
         return self._win.get_window_info()
@@ -404,6 +405,13 @@ class WindowSDL(WindowBase):
         Logger.debug('Window: Screenshot saved at <%s>' % filename)
         return filename
 
+    def screen_area_shot(self,rect,filename):
+        from kivy.graphics.opengl import glReadPixels, GL_RGB, GL_UNSIGNED_BYTE
+        width, height = rect[2],rect[3]
+        data = glReadPixels(rect[0], rect[1], width, height, GL_RGB, GL_UNSIGNED_BYTE)
+        self._win.save_bytes_in_png(filename, data, width, height)
+        Logger.info('Window: Screenshot %s saved at <%s>' % (str(rect),filename))
+        
     def flip(self):
         self._win.flip()
         super(WindowSDL, self).flip()
@@ -503,6 +511,13 @@ class WindowSDL(WindowBase):
                 continue
 
             action, args = event[0], event[1:]
+                        #for linx
+#             if action=='keydown':
+#                 if args==self.last_keydown:
+#                     self.last_keydown=None 
+#                     continue
+#                 self.last_keydown=args
+                
             if action == 'quit':
                 if self.dispatch('on_request_close'):
                     continue

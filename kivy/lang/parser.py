@@ -41,8 +41,8 @@ lang_str = re.compile(
     '(?:""".*?""")|'
     '(?:(?:(?<!")|""")"(?:[^"]|\\\\")+?"(?:(?!")|""")))', re.DOTALL)
 lang_key = re.compile('([a-zA-Z_]+)')
-lang_keyvalue = re.compile('([a-zA-Z_][a-zA-Z0-9_.]*\.[a-zA-Z0-9_.]+)')
-lang_tr = re.compile('(_\()')
+lang_keyvalue = re.compile(r'([a-zA-Z_][a-zA-Z0-9_.]*\.[a-zA-Z0-9_.]+)')
+lang_tr = re.compile(r'(_\()')
 lang_cls_split_pat = re.compile(', *')
 
 # all the widget handlers, used to correctly unbind all the callbacks then the
@@ -341,8 +341,6 @@ class ParserRule(object):
 
                 if rule[0] == '.':
                     crule = ParserSelectorClass(rule[1:])
-                elif rule[0] == '#':
-                    crule = ParserSelectorId(rule[1:])
                 else:
                     crule = ParserSelectorName(rule)
 
@@ -453,7 +451,7 @@ class Parser(object):
                                     .format(ref))
                         continue
                     else:
-                        Logger.debug('Lang: Reloading {0} ' +
+                        Logger.debug('Lang: Reloading {0} '
                                      'because include was forced.'
                                      .format(ref))
                         kivy.lang.builder.Builder.unload_file(ref)
@@ -698,17 +696,10 @@ class ParserSelector(object):
         self.key = key.lower()
 
     def match(self, widget):
-        raise NotImplemented()
+        raise NotImplementedError
 
     def __repr__(self):
         return '<%s key=%s>' % (self.__class__.__name__, self.key)
-
-
-class ParserSelectorId(ParserSelector):
-
-    def match(self, widget):
-        if widget.id:
-            return widget.id.lower() == self.key
 
 
 class ParserSelectorClass(ParserSelector):

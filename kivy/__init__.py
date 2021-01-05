@@ -25,7 +25,7 @@ __all__ = (
     'kivy_options', 'kivy_base_dir',
     'kivy_modules_dir', 'kivy_data_dir', 'kivy_shader_dir',
     'kivy_icons_dir', 'kivy_home_dir',
-    'kivy_config_fn', 'kivy_usermodules_dir',
+    'kivy_config_fn', 'kivy_usermodules_dir', 'kivy_examples_dir'
 )
 
 import sys
@@ -48,7 +48,7 @@ __version__ = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 if not RELEASE:
     # if it's a rcx release, it's not proceeded by a period. If it is a
     # devx release, it must start with a period
-    __version__ += '.dev0'
+    __version__ += 'rc3'
 
 try:
     from kivy.version import __hash__, __date__
@@ -179,7 +179,10 @@ def kivy_register_post_configuration(callback):
 
 def kivy_usage():
     '''Kivy Usage: %s [OPTION...]::
-
+        
+            Set KIVY_NO_ARGS=1 in your environment or before you import Kivy to
+            disable Kivy's argument parser.
+        
         -h, --help
             Prints this help message.
         -d, --debug
@@ -266,17 +269,31 @@ kivy_home_dir = ''
 kivy_config_fn = ''
 #: Kivy user modules directory
 kivy_usermodules_dir = ''
+#: Kivy examples directory
+kivy_examples_dir = ''
+for examples_dir in (
+        join(dirname(dirname(__file__)), 'examples'),
+        join(sys.exec_prefix, 'share', 'kivy-examples'),
+        join(sys.prefix, 'share', 'kivy-examples'),
+        '/usr/share/kivy-examples', '/usr/local/share/kivy-examples',
+        expanduser('~/.local/share/kivy-examples')):
+    if exists(examples_dir):
+        kivy_examples_dir = examples_dir
+        break
 
 # if there are deps, import them so they can do their magic.
-import kivy.deps
 _packages = []
-for importer, modname, ispkg in pkgutil.iter_modules(kivy.deps.__path__):
-    if not ispkg:
-        continue
-    if modname.startswith('gst'):
-        _packages.insert(0, (importer, modname, 'kivy.deps'))
-    else:
-        _packages.append((importer, modname, 'kivy.deps'))
+try:
+    from kivy import deps as old_deps
+    for importer, modname, ispkg in pkgutil.iter_modules(old_deps.__path__):
+        if not ispkg:
+            continue
+        if modname.startswith('gst'):
+            _packages.insert(0, (importer, modname, 'kivy.deps'))
+        else:
+            _packages.append((importer, modname, 'kivy.deps'))
+except ImportError:
+    pass
 
 try:
     import kivy_deps
