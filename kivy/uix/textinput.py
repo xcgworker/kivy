@@ -867,7 +867,7 @@ class TextInput(FocusBehavior, Widget):
 
         '''
         # IME system handles its own backspaces
-        if self.readonly or self._ime_composition:
+        if self.readonly:
             return
         cc, cr = self.cursor
         _lines = self._lines
@@ -2612,13 +2612,13 @@ class TextInput(FocusBehavior, Widget):
     # cursor position of last IME event
     _ime_cursor = ListProperty(None, allownone=True)
 
-    def _bind_keyboard(self):
-        super()._bind_keyboard()
-        Window.bind(on_textedit=self.window_on_textedit)
+    # def _bind_keyboard(self):
+    #     super()._bind_keyboard()
+    #     Window.bind(on_textedit=self.window_on_textedit)
 
-    def _unbind_keyboard(self):
-        super()._unbind_keyboard()
-        Window.unbind(on_textedit=self.window_on_textedit)
+    # def _unbind_keyboard(self):
+    #     super()._unbind_keyboard()
+    #     Window.unbind(on_textedit=self.window_on_textedit)
 
     def window_on_textedit(self, window, ime_input):
         text_lines = self._lines or ['']
